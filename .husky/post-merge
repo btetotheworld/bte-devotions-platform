@@ -1,1 +1,1 @@
-bun install && bun build
+bun install && bun run build
