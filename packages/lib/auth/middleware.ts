@@ -4,7 +4,7 @@ import type { Session } from "../types/auth";
 
 export interface AuthContext {
   session: Session;
-  user: Awaited<ReturnType<typeof getUserFromSession>>;
+  user: NonNullable<Awaited<ReturnType<typeof getUserFromSession>>>;
 }
 
 /**
