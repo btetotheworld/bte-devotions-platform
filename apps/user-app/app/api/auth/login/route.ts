@@ -6,65 +6,47 @@ import { prisma } from "@bte-devotions/database";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, churchId } = body;
+    const { email, password } = body;
 
     if (!email || !password) {
-      return NextResponse.json(
-        { error: "Email and password are required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
     }
 
     // Authenticate with Ghost Members API
-    const { member, token: ghostToken } = await authenticateWithGhost(
-      email,
-      password
-    );
-
-    // If churchId is provided, use it; otherwise, try to find user's existing church
-    let userChurchId = churchId;
-
-    if (!userChurchId) {
-      const existingUser = await prisma.user.findUnique({
-        where: { ghostMemberId: member.id },
-        select: { churchId: true },
-      });
-      userChurchId = existingUser?.churchId;
-    }
-
-    if (!userChurchId) {
-      return NextResponse.json(
-        { error: "Church ID is required for new users" },
-        { status: 400 }
-      );
-    }
+    const { member } = await authenticateWithGhost(email, password);
 
     // Sync user to our database
-    const user = await syncUserFromGhost(member.id, userChurchId, member);
+    const user = await syncUserFromGhost(member.id, member);
 
-    // Get user roles
+    // Get user with roles and creator info
     const userWithRoles = await prisma.user.findUnique({
       where: { id: user.id },
       include: {
+        creator: true,
         roles: {
           include: {
             role: true,
+            creator: true,
           },
         },
       },
     });
 
-    const roleNames =
-      userWithRoles?.roles.map(
-        (ur: { role: { name: string } }) => ur.role.name
-      ) || [];
+    const roleNames = userWithRoles?.roles.map((ur) => ur.role.name) || [];
+    const creatorId = userWithRoles?.creator?.id;
+    
+    // Get managed creator IDs (creators this user can manage)
+    const managedCreatorIds = userWithRoles?.roles
+      .filter((ur) => ur.role.name === "CREATOR_ADMIN")
+      .map((ur) => ur.creatorId) || [];
 
     // Create session
     const sessionToken = await createSession(
       user.id,
-      userChurchId,
       user.email,
-      roleNames
+      roleNames,
+      creatorId,
+      managedCreatorIds
     );
 
     // Set session cookie
@@ -75,8 +57,9 @@ export async function POST(req: NextRequest) {
         id: user.id,
         email: user.email,
         name: user.name,
-        churchId: userChurchId,
+        creatorId,
         roles: roleNames,
+        managedCreatorIds,
       },
     });
   } catch (error) {

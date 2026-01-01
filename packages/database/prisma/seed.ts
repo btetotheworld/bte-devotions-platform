@@ -7,9 +7,9 @@ async function main() {
 
   // Create roles
   const roles = [
-    { name: "CHURCH_ADMIN", description: "Church administrator with full access" },
-    { name: "CREATOR", description: "Content creator who can publish devotions" },
-    { name: "MEMBER", description: "Regular member who can subscribe to devotions" },
+    { name: "CREATOR", description: "Content creator who can publish devotions and articles" },
+    { name: "CREATOR_ADMIN", description: "Admin who can manage a creator's content" },
+    { name: "SUBSCRIBER", description: "Regular subscriber who can subscribe to creators" },
   ];
 
   for (const roleData of roles) {
@@ -20,18 +20,6 @@ async function main() {
     });
     console.log(`Created/Updated role: ${role.name}`);
   }
-
-  // Create a test church (optional - for development)
-  const testChurch = await prisma.church.upsert({
-    where: { slug: "test-church" },
-    update: {},
-    create: {
-      name: "Test Church",
-      slug: "test-church",
-      settings: JSON.stringify({ theme: "default" }),
-    },
-  });
-  console.log(`Created/Updated church: ${testChurch.name}`);
 
   console.log("Seeding completed!");
 }
@@ -45,4 +33,3 @@ main()
     await prisma.$disconnect();
     process.exit(1);
   });
-

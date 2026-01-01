@@ -10,44 +10,59 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Church {
-  id        String   @id @default(uuid())
-  name      String
-  slug      String   @unique
-  settings  String?  // JSON string for settings
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Creator {
+  id         String   @id @default(uuid())
+  name       String
+  slug       String   @unique
+  bio        String? // Creator bio/description
+  avatar     String? // Profile image URL
+  type       String // "INDIVIDUAL" | "CHURCH"
+  isVerified Boolean  @default(false)
+  settings   String? // JSON string for settings
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  users              User[]
+  // A user can be a creator (one-to-one)
+  userId String? @unique
+  user   User?   @relation(fields: [userId], references: [id])
+
+  // Creator's content and management
   ghostAuthorMappings GhostAuthorMapping[]
-  subscriptions      Subscription[]
-  userRoles          UserRole[]
+  subscriptions       Subscription[] // Users subscribed to this creator
+  userRoles           UserRole[] // People invited to manage this creator's content
 
   @@index([slug])
+  @@index([type])
 }
 
 model User {
-  id           String   @id @default(uuid())
-  email        String   @unique
-  name         String?
+  id            String   @id @default(uuid())
+  email         String   @unique
+  name          String?
   ghostMemberId String?  @unique // Ghost Members API ID
-  churchId     String
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  isCreator     Boolean  @default(false) // Can this user be a creator?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  church         Church              @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  roles          UserRole[]
+  // Optional: User can be a creator
+  creator Creator?
+
+  // User's subscriptions to creators
+  subscriptions Subscription[]
+
+  // User's roles (can manage multiple creators)
+  roles UserRole[]
+
+  // If user is a creator, their author mapping
   ghostAuthorMapping GhostAuthorMapping?
-  subscriptions  Subscription[]
 
   @@index([email])
-  @@index([churchId])
   @@index([ghostMemberId])
 }
 
 model Role {
   id          String   @id @default(uuid())
-  name        String   @unique // CHURCH_ADMIN, CREATOR, MEMBER
+  name        String   @unique // CREATOR, CREATOR_ADMIN, SUBSCRIBER
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -58,49 +73,50 @@ model Role {
 }
 
 model UserRole {
-  userId   String
-  roleId   String
-  churchId String
+  userId    String
+  roleId    String
+  creatorId String // Role is scoped to a specific creator
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  church Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role    Role    @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
-  @@id([userId, roleId, churchId])
+  @@id([userId, roleId, creatorId])
   @@index([userId])
-  @@index([churchId])
+  @@index([creatorId])
 }
 
 model GhostAuthorMapping {
   id            String   @id @default(uuid())
   ghostAuthorId String   @unique // Ghost author ID
-  churchId      String
-  userId        String   @unique // creator user
+  creatorId     String // Maps to creator
+  userId        String   @unique // The creator user
   createdAt     DateTime @default(now())
 
-  church Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([ghostAuthorId])
-  @@index([churchId])
+  @@index([creatorId])
   @@index([userId])
 }
 
 model Subscription {
   id            String   @id @default(uuid())
   userId        String
-  churchId      String
-  ghostMemberId String   // Ghost Members API member ID
+  creatorId     String // User subscribes to creator
+  ghostMemberId String // Ghost Members API member ID
+  contentType   String // "DEVOTIONS" | "ARTICLES" | "ALL"
   isActive      Boolean  @default(true)
-  preferences   String?  // JSON string for preferences
+  preferences   String? // JSON string for preferences
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  church Church @relation(fields: [churchId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  creator Creator @relation(fields: [creatorId], references: [id], onDelete: Cascade)
 
+  @@unique([userId, creatorId]) // User can only subscribe once per creator
   @@index([userId])
-  @@index([churchId])
+  @@index([creatorId])
   @@index([ghostMemberId])
 }
-

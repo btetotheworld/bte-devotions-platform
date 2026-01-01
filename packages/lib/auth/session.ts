@@ -11,14 +11,21 @@ const secret = new TextEncoder().encode(JWT_SECRET);
 /**
  * Create a JWT session for a user
  */
-export async function createSession(userId: string, churchId: string, email: string, roles: string[]): Promise<string> {
+export async function createSession(
+  userId: string,
+  email: string,
+  roles: string[],
+  creatorId?: string,
+  managedCreatorIds?: string[]
+): Promise<string> {
   const now = Math.floor(Date.now() / 1000);
 
   const token = await new SignJWT({
     userId,
-    churchId,
     email,
     roles,
+    creatorId,
+    managedCreatorIds,
     iat: now,
   })
     .setProtectedHeader({ alg: "HS256" })
@@ -69,9 +76,11 @@ export async function getUserFromSession(session: Session | null) {
   const user = await prisma.user.findUnique({
     where: { id: session.userId },
     include: {
+      creator: true,
       roles: {
         include: {
           role: true,
+          creator: true,
         },
       },
     },
@@ -83,11 +92,17 @@ export async function getUserFromSession(session: Session | null) {
 
   // Extract role names
   const roles = user.roles.map((ur) => ur.role.name);
+  
+  // Get managed creator IDs (creators this user can manage)
+  const managedCreatorIds = user.roles
+    .filter((ur) => ur.role.name === "CREATOR_ADMIN")
+    .map((ur) => ur.creatorId);
 
   return {
     ...user,
     roles: user.roles.map((ur) => ur.role),
     roleNames: roles,
+    managedCreatorIds,
   };
 }
 
@@ -112,4 +127,3 @@ export async function deleteSessionCookie() {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
 }
-

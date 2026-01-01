@@ -1,53 +1,56 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { withAuth } from "@bte-devotions/lib";
 import { prisma } from "@bte-devotions/database";
 
 const GHOST_URL = process.env.GHOST_URL || "";
 const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || "";
 
-// POST /api/ghost/posts - Create post in Ghost (with church_id tag)
+// POST /api/ghost/posts - Create post in Ghost (with creator_id tag)
 export const POST = withAuth(async (req, auth) => {
   try {
-    if (!auth.user) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
-    }
-
     const body = await req.json();
-    const { title, html, excerpt, published_at, tags = [] } = body;
+    const { title, html, excerpt, published_at, tags = [], contentType = "devotion", creatorId } = body;
 
     if (!title || !html) {
-      return NextResponse.json(
-        { error: "Title and HTML content are required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Title and HTML content are required" }, { status: 400 });
     }
 
-    // Get church slug for tagging
-    const church = await prisma.church.findUnique({
-      where: { id: auth.session.churchId },
+    // Use creatorId from body or from session
+    const targetCreatorId = creatorId || auth.session.creatorId;
+
+    if (!targetCreatorId) {
+      return NextResponse.json({ error: "Creator ID is required" }, { status: 400 });
+    }
+
+    // Verify user has access to this creator
+    const { requireCreatorAccess } = await import("@bte-devotions/lib");
+    await requireCreatorAccess(targetCreatorId);
+
+    // Get creator slug for tagging
+    const creator = await prisma.creator.findUnique({
+      where: { id: targetCreatorId },
       select: { slug: true },
     });
 
-    if (!church) {
-      return NextResponse.json({ error: "Church not found" }, { status: 404 });
+    if (!creator) {
+      return NextResponse.json({ error: "Creator not found" }, { status: 404 });
     }
 
-    // Prepare tags - always include church_id tag
-    const churchTag = `church_id:${auth.session.churchId}`;
-    const allTags = [...new Set([...tags, churchTag])];
+    // Prepare tags - always include creator_id and content type
+    const creatorTag = `creator_id:${targetCreatorId}`;
+    const contentTypeTag = `content_type:${contentType}`;
+    const allTags = [...new Set([...tags, creatorTag, contentTypeTag])];
 
-    // Get or create Ghost author mapping for this user
-    const ghostAuthorMapping = await prisma.ghostAuthorMapping.findUnique({
-      where: { userId: auth.user.id },
+    // Get or create Ghost author mapping for this creator
+    const ghostAuthorMapping = await prisma.ghostAuthorMapping.findFirst({
+      where: { creatorId: targetCreatorId },
     });
 
     if (!ghostAuthorMapping) {
       // For now, we'll need to create the author in Ghost first
       // This is a placeholder - you'll need to implement Ghost author creation
       return NextResponse.json(
-        {
-          error: "Ghost author mapping not found. Please set up author first.",
-        },
+        { error: "Ghost author mapping not found. Please set up author first." },
         { status: 400 }
       );
     }
@@ -76,9 +79,7 @@ export const POST = withAuth(async (req, auth) => {
     });
 
     if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ message: "Failed to create post" }));
+      const error = await response.json().catch(() => ({ message: "Failed to create post" }));
       throw new Error(error.message || "Failed to create post in Ghost");
     }
 
@@ -87,30 +88,78 @@ export const POST = withAuth(async (req, auth) => {
   } catch (error) {
     console.error("Error creating Ghost post:", error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to create post",
-      },
+      { error: error instanceof Error ? error.message : "Failed to create post" },
       { status: 500 }
     );
   }
 });
 
-// GET /api/ghost/posts - Get posts filtered by church_id
+// GET /api/ghost/posts - Get posts filtered by creator_id or user's subscriptions
 export const GET = withAuth(async (req, auth) => {
   try {
     const url = new URL(req.url);
     const limit = parseInt(url.searchParams.get("limit") || "10");
     const page = parseInt(url.searchParams.get("page") || "1");
+    const creatorId = url.searchParams.get("creatorId");
+    const contentType = url.searchParams.get("contentType"); // "devotion" | "article"
 
-    // Get church tag
-    const churchTag = `church_id:${auth.session.churchId}`;
-
-    // Fetch posts from Ghost Content API filtered by tag
     const GHOST_CONTENT_API_KEY = process.env.GHOST_CONTENT_API_KEY || "";
+
+    // If creatorId is specified, get posts from that creator
+    if (creatorId) {
+      const creatorTag = `creator_id:${creatorId}`;
+      const filter = contentType
+        ? `tag:${creatorTag}+tag:content_type:${contentType}`
+        : `tag:${creatorTag}`;
+
+      const response = await fetch(
+        `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_CONTENT_API_KEY}&filter=${encodeURIComponent(filter)}&limit=${limit}&page=${page}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch posts from Ghost");
+      }
+
+      const data = await response.json();
+      return NextResponse.json({
+        posts: data.posts || [],
+        meta: data.meta || {},
+      });
+    }
+
+    // Otherwise, get posts from user's subscribed creators
+    const subscriptions = await prisma.subscription.findMany({
+      where: {
+        userId: auth.user.id,
+        isActive: true,
+      },
+      select: {
+        creatorId: true,
+        contentType: true,
+      },
+    });
+
+    if (subscriptions.length === 0) {
+      return NextResponse.json({
+        posts: [],
+        meta: { pagination: { page, limit, total: 0 } },
+      });
+    }
+
+    // Build filter for all subscribed creators
+    const creatorTags = subscriptions
+      .map((sub) => `creator_id:${sub.creatorId}`)
+      .join(",");
+    const filter = `tag:[${creatorTags}]`;
+
     const response = await fetch(
-      `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_CONTENT_API_KEY}&filter=tag:${encodeURIComponent(
-        churchTag
-      )}&limit=${limit}&page=${page}`,
+      `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_CONTENT_API_KEY}&filter=${encodeURIComponent(filter)}&limit=${limit}&page=${page}`,
       {
         method: "GET",
         headers: {
@@ -131,9 +180,7 @@ export const GET = withAuth(async (req, auth) => {
   } catch (error) {
     console.error("Error fetching Ghost posts:", error);
     return NextResponse.json(
-      {
-        error: error instanceof Error ? error.message : "Failed to fetch posts",
-      },
+      { error: error instanceof Error ? error.message : "Failed to fetch posts" },
       { status: 500 }
     );
   }

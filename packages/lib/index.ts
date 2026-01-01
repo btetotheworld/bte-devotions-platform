@@ -7,7 +7,3 @@ export * from "./multi-tenant/middleware";
 export * from "./types/auth";
 export * from "./types/tenant";
 export * from "./utils";
-
-
-
-

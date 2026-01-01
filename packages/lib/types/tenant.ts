@@ -1,16 +1,19 @@
-import type { Church, User } from "@prisma/client";
+import type { Creator, User } from "@prisma/client";
 
 export interface TenantContext {
-  church: Church;
+  creator: Creator;
   user: User;
-  churchId: string;
+  creatorId: string;
   userId: string;
 }
 
-export interface ChurchContext {
+export interface CreatorContext {
   id: string;
   name: string;
   slug: string;
+  type: string; // "INDIVIDUAL" | "CHURCH"
+  bio?: string;
+  avatar?: string;
+  isVerified: boolean;
   settings?: Record<string, unknown>;
 }
-

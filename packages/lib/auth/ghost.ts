@@ -27,9 +27,7 @@ export async function authenticateWithGhost(
   });
 
   if (!response.ok) {
-    const error = await response
-      .json()
-      .catch(() => ({ message: "Authentication failed" }));
+    const error = await response.json().catch(() => ({ message: "Authentication failed" }));
     throw new Error(error.message || "Authentication failed");
   }
 
@@ -43,19 +41,14 @@ export async function authenticateWithGhost(
 /**
  * Get Ghost member by ID
  */
-export async function getGhostMember(
-  ghostMemberId: string
-): Promise<GhostMember | null> {
+export async function getGhostMember(ghostMemberId: string): Promise<GhostMember | null> {
   try {
-    const response = await fetch(
-      `${GHOST_MEMBERS_API_URL}/members/${ghostMemberId}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    const response = await fetch(`${GHOST_MEMBERS_API_URL}/members/${ghostMemberId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
 
     if (!response.ok) {
       return null;
@@ -74,17 +67,16 @@ export async function getGhostMember(
  */
 export async function syncUserFromGhost(
   ghostMemberId: string,
-  churchId: string,
   ghostMember?: GhostMember
 ): Promise<{ id: string; email: string; name?: string }> {
+  // Import prisma from database package
+  const { prisma } = await import("@bte-devotions/database");
+
   // Fetch member from Ghost if not provided
   const member = ghostMember || (await getGhostMember(ghostMemberId));
   if (!member) {
     throw new Error("Ghost member not found");
   }
-
-  // Import prisma from database package
-  const { prisma } = await import("@bte-devotions/database");
 
   // Find or create user in our database
   let user = await prisma.user.findUnique({
@@ -98,7 +90,6 @@ export async function syncUserFromGhost(
       data: {
         email: member.email,
         name: member.name || undefined,
-        churchId, // Update church if changed
       },
     });
   } else {
@@ -108,7 +99,7 @@ export async function syncUserFromGhost(
         email: member.email,
         name: member.name || undefined,
         ghostMemberId: member.id,
-        churchId,
+        isCreator: false, // Default to false, can be updated later
       },
     });
   }

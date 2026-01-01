@@ -4,7 +4,7 @@ import type { Session } from "../types/auth";
 
 export interface AuthContext {
   session: Session;
-  user: NonNullable<Awaited<ReturnType<typeof getUserFromSession>>>;
+  user: Awaited<ReturnType<typeof getUserFromSession>>;
 }
 
 /**
@@ -32,10 +32,6 @@ export async function requireAuth(): Promise<AuthContext> {
 export async function requireRole(roleName: string): Promise<AuthContext> {
   const auth = await requireAuth();
 
-  if (!auth.user) {
-    throw new Error("User not found");
-  }
-
   const hasRole = auth.user.roleNames?.includes(roleName);
 
   if (!hasRole) {
@@ -46,14 +42,19 @@ export async function requireRole(roleName: string): Promise<AuthContext> {
 }
 
 /**
- * Require church access - verify user belongs to the church
+ * Require creator access - verify user is the creator or can manage the creator
  */
-export async function requireChurchAccess(churchId: string): Promise<AuthContext> {
+export async function requireCreatorAccess(creatorId: string): Promise<AuthContext> {
   const auth = await requireAuth();
 
-  // Check if user belongs to the church
-  if (auth.session.churchId !== churchId) {
-    throw new Error("Forbidden: Access denied to this church");
+  // Check if user is the creator
+  const isCreator = auth.session.creatorId === creatorId;
+  
+  // Check if user can manage this creator
+  const canManage = auth.session.managedCreatorIds?.includes(creatorId) || false;
+
+  if (!isCreator && !canManage) {
+    throw new Error("Forbidden: Access denied to this creator");
   }
 
   return auth;
@@ -100,16 +101,16 @@ export function withRole(
 }
 
 /**
- * Middleware wrapper for API routes that require church access
+ * Middleware wrapper for API routes that require creator access
  */
-export function withChurchAccess(
-  getChurchId: (req: NextRequest) => string | Promise<string>,
+export function withCreatorAccess(
+  getCreatorId: (req: NextRequest) => string | Promise<string>,
   handler: (req: NextRequest, auth: AuthContext) => Promise<NextResponse>
 ) {
   return async (req: NextRequest) => {
     try {
-      const churchId = await getChurchId(req);
-      const auth = await requireChurchAccess(churchId);
+      const creatorId = await getCreatorId(req);
+      const auth = await requireCreatorAccess(creatorId);
       return await handler(req, auth);
     } catch (error) {
       const status = error instanceof Error && error.message.includes("Forbidden") ? 403 : 401;
@@ -120,4 +121,3 @@ export function withChurchAccess(
     }
   };
 }
-
