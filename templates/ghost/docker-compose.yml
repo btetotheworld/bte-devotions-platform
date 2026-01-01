@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  ghost:
+    image: ghost:5-alpine
+    container_name: bte-ghost-local
+    ports:
+      - "2368:2368"
+    environment:
+      url: http://localhost:2368
+      database__client: sqlite3
+      database__connection__filename: /var/lib/ghost/content/data/ghost.db
+      mail__transport: Direct
+      NODE_ENV: development
+    volumes:
+      - ./content:/var/lib/ghost/content
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "current/index.js", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+

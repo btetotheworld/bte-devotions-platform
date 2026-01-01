@@ -52,3 +52,8 @@ next-env.d.ts
 # turbo
 .turbo/
 *.turbo
+
+# Ghost CMS (local instance - outside monorepo)
+../ghost/content/
+../ghost/.env
+../ghost/.env.local

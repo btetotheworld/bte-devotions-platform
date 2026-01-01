@@ -17,15 +17,47 @@ Ghost CMS serves as the **content engine** for our platform. It handles:
 ```
 apps/web/
 ├── bte-devotions-platform/  # Monorepo (Next.js apps)
-└── ghost/                   # Ghost CMS (separate service)
-    ├── docker-compose.yml
-    ├── content/            # Ghost database & content (gitignored)
-    └── README.md
+│   ├── templates/
+│   │   └── ghost/          # Ghost template files (version controlled)
+│   └── ...
+└── ghost/                   # Ghost CMS (local instance, created from template)
+    ├── docker-compose.yml  # Copied from templates/ghost/
+    ├── setup.sh            # Copied from templates/ghost/
+    ├── README.md           # Copied from templates/ghost/
+    └── content/            # Ghost database & content (gitignored)
 ```
+
+**Note:** The `templates/ghost/` directory in the monorepo contains the template files. These are automatically copied to `../ghost/` when you run `bun setup`.
 
 ## Local Development Setup
 
-### Step 1: Start Ghost
+### Step 1: Set Up Ghost Directory
+
+The setup script (`bun setup`) automatically copies Ghost template files to `../ghost`. If you haven't run it yet:
+
+```bash
+# Run the monorepo setup (copies Ghost files automatically)
+bun setup
+```
+
+Or manually copy the template files:
+
+```bash
+# Copy template files
+cp -r templates/ghost ../ghost
+
+# Make setup script executable
+chmod +x ../ghost/setup.sh
+```
+
+### Step 2: Start Ghost
+
+```bash
+cd ../ghost
+./setup.sh
+```
+
+Or manually:
 
 ```bash
 cd ../ghost
@@ -36,13 +68,13 @@ Ghost will be available at:
 - **Admin Panel**: http://localhost:2368/ghost
 - **Public Site**: http://localhost:2368
 
-### Step 2: First-Time Setup
+### Step 3: First-Time Setup
 
 1. Open http://localhost:2368/ghost
 2. Create your admin account (name, email, password)
 3. Complete the initial setup wizard
 
-### Step 3: Get API Keys
+### Step 4: Get API Keys
 
 1. In Ghost Admin, go to **Settings → Integrations**
 2. Click **Add custom integration**
@@ -51,7 +83,7 @@ Ghost will be available at:
    - **Content API Key** → Used to fetch posts
    - **Admin API Key** → Used to create posts
 
-### Step 4: Configure Frontend
+### Step 5: Configure Frontend
 
 Add to `bte-devotions-platform/.env.local`:
 
@@ -62,7 +94,7 @@ GHOST_ADMIN_API_KEY=your-admin-api-key-here
 GHOST_MEMBERS_API_URL=http://localhost:2368
 ```
 
-### Step 5: Create Test Content
+### Step 6: Create Test Content
 
 1. In Ghost Admin, create a test post
 2. Add a church tag: `church_id:test-church-123`

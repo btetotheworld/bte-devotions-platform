@@ -1,0 +1,6 @@
+# Ignore everything except docker-compose.yml and README
+content/
+*.log
+.env
+.env.local
+

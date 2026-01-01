@@ -161,9 +161,11 @@ Ship a web-first, free SaaS that enables:
 -  Node.js 20+ (if not using Bun)
 -  Docker and Docker Compose (for local Ghost instance)
 
+That's it! The setup script handles everything else.
+
 ### Installation
 
-#### 1. Set Up Local Ghost Instance
+#### Quick Setup (Recommended)
 
 Ghost runs separately from the monorepo. Each developer runs their own local Ghost instance.
 
@@ -180,12 +182,63 @@ Quick steps:
 #### 2. Set Up Monorepo
 
 ```bash
-# Install dependencies (installs for all workspaces)
+# Install dependencies
 bun install
 
-# Set up environment variables
+# Run setup script (creates .env.local, sets up database, seeds data)
+bun setup
+```
+
+The setup script will:
+- ✅ Create `.env.local` from `.env.example`
+- ✅ Generate Prisma client
+- ✅ Create and seed the database
+- ✅ Copy Ghost template files to `../ghost` directory
+- ✅ Check Ghost setup status
+
+#### Manual Setup
+
+If you prefer to set up manually:
+
+**1. Set Up Ghost (Required)**
+
+The setup script automatically copies Ghost template files to `../ghost`:
+
+```bash
+# Run setup (copies Ghost files automatically)
+bun setup
+
+# Then start Ghost
+cd ../ghost
+./setup.sh
+```
+
+Or manually copy template files:
+```bash
+# Copy template files (if not done by bun setup)
+cp -r templates/ghost ../ghost
+
+# Start Ghost
+cd ../ghost
+./setup.sh
+```
+
+Then:
+- Open http://localhost:2368/ghost
+- Create admin account
+- Get API keys from Settings → Integrations
+- Add keys to `bte-devotions-platform/.env.local`
+
+**2. Set Up Monorepo**
+
+```bash
+# Install dependencies
+bun install
+
+# Create environment file
 cp .env.example .env.local
-# Edit .env.local with your Ghost API credentials (get from Ghost Admin)
+
+# Update .env.local with Ghost API keys
 
 # Generate Prisma client
 bun db:generate
@@ -193,11 +246,13 @@ bun db:generate
 # Push database schema
 bun db:push
 
-# Seed database with initial roles
+# Seed database
 bun db:seed
 ```
 
-**Important:** Each developer runs their own local Ghost instance. Never share Ghost databases or commit Ghost content to Git. See [Ghost Setup Guide](./docs/GHOST_SETUP.md) for details.
+**📖 For detailed Ghost setup, see [Ghost Setup Guide](./docs/GHOST_SETUP.md)**
+
+**Important:** Each developer runs their own local Ghost instance. Never share Ghost databases or commit Ghost content to Git.
 
 ### Running the Applications
 
@@ -274,7 +329,15 @@ EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
 │       ├── db/            # Prisma client
 │       └── package.json
 ├── /scripts               # Utility scripts
-│   └── enforce-bun.js     # Bun version enforcement
+│   ├── enforce-bun.js     # Bun version enforcement
+│   └── setup.js            # Automated setup script
+├── /templates              # Template files
+│   └── /ghost              # Ghost CMS template files
+│       ├── docker-compose.yml
+│       ├── setup.sh
+│       ├── README.md
+│       ├── .gitignore
+│       └── .dockerignore
 ├── /styles                # Shared Tailwind / global styles
 ├── package.json           # Root workspace package.json
 ├── turbo.json             # Turborepo config
@@ -369,6 +432,9 @@ EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
 ## Available Scripts
 
 ```bash
+# Setup (First Time)
+bun setup            # Automated setup: creates .env.local, sets up database, seeds data
+
 # Development
 bun dev:user         # Start user-facing app (port 3000)
 bun dev:admin        # Start admin app (port 3001)

@@ -1,0 +1,10 @@
+# Ghost content (database, images, etc.)
+content/
+
+# Environment files
+.env
+.env.local
+
+# Logs
+*.log
+
