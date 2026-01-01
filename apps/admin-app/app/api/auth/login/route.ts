@@ -9,11 +9,17 @@ export async function POST(req: NextRequest) {
     const { email, password, churchId } = body;
 
     if (!email || !password) {
-      return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Email and password are required" },
+        { status: 400 }
+      );
     }
 
     // Authenticate with Ghost Members API
-    const { member, token: ghostToken } = await authenticateWithGhost(email, password);
+    const { member, token: ghostToken } = await authenticateWithGhost(
+      email,
+      password
+    );
 
     // If churchId is provided, use it; otherwise, try to find user's existing church
     let userChurchId = churchId;
@@ -48,10 +54,18 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    const roleNames = userWithRoles?.roles.map((ur) => ur.role.name) || [];
+    const roleNames =
+      userWithRoles?.roles.map(
+        (ur: { role: { name: string } }) => ur.role.name
+      ) || [];
 
     // Create session
-    const sessionToken = await createSession(user.id, userChurchId, user.email, roleNames);
+    const sessionToken = await createSession(
+      user.id,
+      userChurchId,
+      user.email,
+      roleNames
+    );
 
     // Set session cookie
     await setSessionCookie(sessionToken);
@@ -73,4 +87,3 @@ export async function POST(req: NextRequest) {
     );
   }
 }
-

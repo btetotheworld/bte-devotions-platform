@@ -8,11 +8,18 @@ const GHOST_ADMIN_API_KEY = process.env.GHOST_ADMIN_API_KEY || "";
 // POST /api/ghost/posts - Create post in Ghost (with church_id tag)
 export const POST = withAuth(async (req, auth) => {
   try {
+    if (!auth.user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     const body = await req.json();
     const { title, html, excerpt, published_at, tags = [] } = body;
 
     if (!title || !html) {
-      return NextResponse.json({ error: "Title and HTML content are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Title and HTML content are required" },
+        { status: 400 }
+      );
     }
 
     // Get church slug for tagging
@@ -30,7 +37,7 @@ export const POST = withAuth(async (req, auth) => {
     const allTags = [...new Set([...tags, churchTag])];
 
     // Get or create Ghost author mapping for this user
-    let ghostAuthorMapping = await prisma.ghostAuthorMapping.findUnique({
+    const ghostAuthorMapping = await prisma.ghostAuthorMapping.findUnique({
       where: { userId: auth.user.id },
     });
 
@@ -38,7 +45,9 @@ export const POST = withAuth(async (req, auth) => {
       // For now, we'll need to create the author in Ghost first
       // This is a placeholder - you'll need to implement Ghost author creation
       return NextResponse.json(
-        { error: "Ghost author mapping not found. Please set up author first." },
+        {
+          error: "Ghost author mapping not found. Please set up author first.",
+        },
         { status: 400 }
       );
     }
@@ -67,7 +76,9 @@ export const POST = withAuth(async (req, auth) => {
     });
 
     if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Failed to create post" }));
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to create post" }));
       throw new Error(error.message || "Failed to create post in Ghost");
     }
 
@@ -76,7 +87,9 @@ export const POST = withAuth(async (req, auth) => {
   } catch (error) {
     console.error("Error creating Ghost post:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create post" },
+      {
+        error: error instanceof Error ? error.message : "Failed to create post",
+      },
       { status: 500 }
     );
   }
@@ -95,7 +108,9 @@ export const GET = withAuth(async (req, auth) => {
     // Fetch posts from Ghost Content API filtered by tag
     const GHOST_CONTENT_API_KEY = process.env.GHOST_CONTENT_API_KEY || "";
     const response = await fetch(
-      `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_CONTENT_API_KEY}&filter=tag:${encodeURIComponent(churchTag)}&limit=${limit}&page=${page}`,
+      `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_CONTENT_API_KEY}&filter=tag:${encodeURIComponent(
+        churchTag
+      )}&limit=${limit}&page=${page}`,
       {
         method: "GET",
         headers: {
@@ -116,9 +131,10 @@ export const GET = withAuth(async (req, auth) => {
   } catch (error) {
     console.error("Error fetching Ghost posts:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to fetch posts" },
+      {
+        error: error instanceof Error ? error.message : "Failed to fetch posts",
+      },
       { status: 500 }
     );
   }
 });
-

@@ -35,7 +35,7 @@ export async function createSession(userId: string, churchId: string, email: str
 export async function getSession(token: string): Promise<Session | null> {
   try {
     const { payload } = await jwtVerify(token, secret);
-    return payload as Session;
+    return payload as unknown as Session;
   } catch (error) {
     console.error("Session verification failed:", error);
     return null;

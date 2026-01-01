@@ -1,0 +1,26 @@
+
+[0m[2m[35m$[0m [2m[1meslint . --ext .js,.jsx,.ts,.tsx[0m
+[0m[0m
+[0m[4m/Users/apple/Documents/apps/web/bte-devotions-platform/apps/user-app/app/api/auth/login/route.ts[24m[0m
+[0m  [2m16:28[22m  [33mwarning[39m  'ghostToken' is assigned a value but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/Users/apple/Documents/apps/web/bte-devotions-platform/apps/user-app/app/api/churches/[id]/route.ts[24m[0m
+[0m  [2m2:10[22m  [33mwarning[39m  'withAuth' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/Users/apple/Documents/apps/web/bte-devotions-platform/apps/user-app/app/api/churches/route.ts[24m[0m
+[0m   [2m1:10[22m  [33mwarning[39m  'NextRequest' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m   [2m4:10[22m  [33mwarning[39m  'withTenantFilter' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m47:58[22m  [33mwarning[39m  'auth' is defined but never used              [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/Users/apple/Documents/apps/web/bte-devotions-platform/apps/user-app/app/api/ghost/posts/route.ts[24m[0m
+[0m  [2m1:10[22m  [33mwarning[39m  'NextRequest' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/Users/apple/Documents/apps/web/bte-devotions-platform/apps/user-app/app/api/users/invite/route.ts[24m[0m
+[0m  [2m1:10[22m  [33mwarning[39m  'NextRequest' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[4m/Users/apple/Documents/apps/web/bte-devotions-platform/apps/user-app/app/api/users/route.ts[24m[0m
+[0m  [2m1:10[22m  [33mwarning[39m  'NextRequest' is defined but never used       [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m  [2m4:10[22m  [33mwarning[39m  'withTenantFilter' is defined but never used  [2m@typescript-eslint/no-unused-vars[22m[0m
+[0m[0m
+[0m[33m[1m✖ 9 problems (0 errors, 9 warnings)[22m[39m[0m
+[0m[33m[1m[22m[39m[0m

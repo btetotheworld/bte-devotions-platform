@@ -13,12 +13,6 @@ export interface UserWithRoles extends User {
   roles: Role[];
 }
 
-export interface AuthContext {
-  user: UserWithRoles;
-  session: Session;
-  churchId: string;
-}
-
 export interface GhostMember {
   id: string;
   email: string;

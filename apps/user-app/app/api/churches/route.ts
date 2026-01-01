@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
-import { withAuth, withRole } from "@bte-devotions/lib";
+import { withAuth, withRole, withTenantFilter } from "@bte-devotions/lib";
 import { prisma } from "@bte-devotions/database";
-import { withTenantFilter } from "@bte-devotions/lib/middleware";
 
 // GET /api/churches - List churches (scoped to user's church)
 export const GET = withAuth(async (req, auth) => {
+  if (!auth.user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
   // Regular users can only see their own church
   const isAdmin = auth.user.roleNames?.includes("CHURCH_ADMIN");
 
@@ -50,7 +53,10 @@ export const POST = withRole("CHURCH_ADMIN", async (req, auth) => {
     const { name, slug, settings } = body;
 
     if (!name || !slug) {
-      return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Name and slug are required" },
+        { status: 400 }
+      );
     }
 
     const church = await prisma.church.create({
@@ -65,9 +71,11 @@ export const POST = withRole("CHURCH_ADMIN", async (req, auth) => {
   } catch (error) {
     console.error("Error creating church:", error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to create church" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to create church",
+      },
       { status: 500 }
     );
   }
 });
-

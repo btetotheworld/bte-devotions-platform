@@ -10,8 +10,11 @@ export async function GET(
   const { id } = await params;
 
   try {
-    const auth = await import("@bte-devotions/lib").then((m) => m.requireAuth());
-    await import("@bte-devotions/lib/context").then((m) => m.checkTenantAccess(auth.session.userId, id));
+    const { requireAuth, checkTenantAccess } = await import(
+      "@bte-devotions/lib"
+    );
+    const auth = await requireAuth();
+    await checkTenantAccess(auth.session.userId, id);
 
     const church = await prisma.church.findUnique({
       where: { id },
@@ -37,4 +40,3 @@ export async function GET(
     );
   }
 }
-
