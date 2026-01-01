@@ -147,9 +147,31 @@ Ship a web-first, free SaaS that enables:
 
 - [Bun](https://bun.sh) 1.1.0+ (enforced via preinstall script)
 - Node.js 20+ (if not using Bun)
-- Ghost instance (self-hosted or managed)
+- Docker and Docker Compose (for local Ghost instance)
 
 ### Installation
+
+#### 1. Set Up Local Ghost Instance
+
+Ghost runs separately from the monorepo. Each developer runs their own local Ghost instance.
+
+```bash
+# Navigate to the ghost directory (sibling to monorepo)
+cd ../ghost
+
+# Start Ghost with Docker
+docker compose up -d
+
+# Access Ghost Admin: http://localhost:2368/ghost
+# Create your admin account (first-time setup)
+```
+
+**Get API Keys:**
+1. Go to Ghost Admin: http://localhost:2368/ghost
+2. Navigate to: Settings → Integrations → Add custom integration
+3. Copy the **Content API Key** and **Admin API Key**
+
+#### 2. Set Up Monorepo
 
 ```bash
 # Install dependencies (installs for all workspaces)
@@ -157,7 +179,7 @@ bun install
 
 # Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your Ghost API credentials
+# Edit .env.local with your Ghost API credentials from step 1
 
 # Generate Prisma client
 bun db:generate
@@ -168,6 +190,8 @@ bun db:push
 # Seed database with initial roles
 bun db:seed
 ```
+
+**Important:** Each developer runs their own local Ghost instance. Never share Ghost databases or commit Ghost content to Git.
 
 ### Running the Applications
 
@@ -183,19 +207,19 @@ bun dev:admin
 
 - **User App**: [http://localhost:3000](http://localhost:3000) - For church members
 - **Admin App**: [http://localhost:3001](http://localhost:3001) - For creators and church admins
+- **Ghost Admin**: [http://localhost:2368/ghost](http://localhost:2368/ghost) - Ghost CMS admin (creators don't use this)
+- **Ghost Public**: [http://localhost:2368](http://localhost:2368) - Ghost public site
 
 ### Environment Variables
 
-Create a `.env.local` file with the following variables:
+Create a `.env.local` file in the monorepo root with the following variables:
 
 ```env
-# Ghost CMS Configuration
-NEXT_PUBLIC_GHOST_URL=https://your-ghost-instance.com
-GHOST_ADMIN_API_KEY=your-admin-api-key
-GHOST_CONTENT_API_KEY=your-content-api-key
-
-# Ghost Members API (for authentication)
-GHOST_MEMBERS_API_URL=https://your-ghost-instance.com/members/api
+# Ghost CMS Configuration (Local Development)
+GHOST_URL=http://localhost:2368
+GHOST_CONTENT_API_KEY=your-content-api-key-from-ghost-admin
+GHOST_ADMIN_API_KEY=your-admin-api-key-from-ghost-admin
+GHOST_MEMBERS_API_URL=http://localhost:2368
 
 # Database (Multi-Tenant SaaS Layer)
 DATABASE_URL=file:./dev.db  # SQLite for MVP
@@ -295,7 +319,12 @@ EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
    - Multi-tenant API routes
    - Database schema with Prisma
 
-2. **Ghost API integration** ✅
+2. **Set up local Ghost instance** ✅
+   - Docker Compose setup (see `../ghost/`)
+   - API key configuration
+   - See [Ghost Setup Guide](./docs/GHOST_SETUP.md) for details
+
+3. **Ghost API integration** ✅
    - Admin API for creating posts
    - Content API for fetching devotions
    - Members API for authentication
