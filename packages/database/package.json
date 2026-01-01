@@ -1,0 +1,25 @@
+{
+  "name": "@bte-devotions/database",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "scripts": {
+    "db:generate": "cd prisma && prisma generate",
+    "db:push": "cd prisma && prisma db push",
+    "db:migrate": "cd prisma && prisma migrate dev",
+    "db:studio": "cd prisma && prisma studio",
+    "db:seed": "bun prisma/seed.ts"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.22.0"
+  },
+  "devDependencies": {
+    "prisma": "^5.22.0"
+  },
+  "prisma": {
+    "schema": "./prisma/schema.prisma",
+    "seed": "bun prisma/seed.ts"
+  }
+}
+

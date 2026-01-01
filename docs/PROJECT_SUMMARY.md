@@ -342,44 +342,54 @@ Track these key metrics to measure MVP success:
 ```
 /bte-devotions-platform
 ├── /apps
-│   ├── /user-app          # User-facing app for members
+│   ├── /user-app          # User-facing app for members (port 3000)
 │   │   ├── app/           # Next.js App Router
+│   │   │   ├── api/       # API routes (auth, churches, users, ghost)
 │   │   │   ├── feed/      # Devotion feed
 │   │   │   ├── subscribe/ # Subscription pages
 │   │   │   └── dashboard/ # Member dashboard
-│   │   └── package.json
-│   └── /admin-app         # Mini frontend for creators & church admins
+│   │   ├── package.json
+│   │   ├── next.config.ts
+│   │   └── tsconfig.json
+│   └── /admin-app         # Mini frontend for creators & church admins (port 3001)
 │       ├── app/           # Next.js App Router
-│       │   ├── create/     # Content creation UI
+│       │   ├── api/       # API routes (auth, churches, users, ghost)
+│       │   ├── create/    # Content creation UI
 │       │   ├── dashboard/ # Creator dashboard
 │       │   └── manage/     # Church management
-│       └── package.json
+│       ├── package.json
+│       ├── next.config.ts
+│       └── tsconfig.json
 ├── /packages
 │   ├── /components        # Shared UI components
 │   │   └── editor/        # Rich text editor (TipTap/Quill/Slate)
 │   ├── /lib               # Shared utilities
-│   │   ├── ghost/         # Ghost API helpers (Admin & Content API)
-│   │   ├── auth/          # Authentication helpers
-│   │   └── multi-tenant/  # Multi-tenant logic
+│   │   ├── auth/          # Authentication (Ghost integration, sessions, middleware)
+│   │   ├── multi-tenant/  # Multi-tenant context and middleware
+│   │   ├── types/         # TypeScript types (auth, tenant)
+│   │   └── utils.ts       # Shared utilities
 │   └── /database          # Database models & schema
 │       ├── prisma/
-│       │   └── schema.prisma  # Multi-tenant schema
-│       └── models/        # Database models
+│       │   ├── schema.prisma  # Multi-tenant schema
+│       │   └── seed.ts        # Database seeding
+│       ├── db/            # Prisma client
+│       └── package.json
 ├── /scripts               # Utility scripts
-│   ├── db-seed.ts         # Database seeding
-│   └── enforce-bun.js      # Bun version enforcement
+│   └── enforce-bun.js     # Bun version enforcement
 ├── /styles                # Shared Tailwind / global styles
-├── package.json           # Root package.json
-├── turbo.json             # Turborepo config (if using)
-└── tsconfig.json          # Shared TypeScript config
+├── package.json           # Root workspace package.json
+├── turbo.json             # Turborepo config
+└── tsconfig.json          # Base TypeScript config
 ```
 
 **Key Points:**
-- Both apps share components, utils, and database models
+- Both apps share components, utils, and database models via workspace packages
 - Multi-tenant enforcement is in shared `packages/lib/multi-tenant`
-- Ghost API helpers are in `packages/lib/ghost`
-- Database schema and models are in `packages/database`
-- Everything runs inside one monorepo, sharing components, database models, and API helpers
+- Authentication and Ghost integration are in `packages/lib/auth`
+- Database schema and Prisma client are in `packages/database`
+- Each app runs independently on different ports
+- Workspace dependencies are managed via Bun workspaces
+- Run apps separately: `bun dev:user` (port 3000) or `bun dev:admin` (port 3001)
 
 ## End-to-End Summary
 

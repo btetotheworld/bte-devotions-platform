@@ -152,18 +152,37 @@ Ship a web-first, free SaaS that enables:
 ### Installation
 
 ```bash
-# Install dependencies
+# Install dependencies (installs for all workspaces)
 bun install
 
 # Set up environment variables
 cp .env.example .env.local
 # Edit .env.local with your Ghost API credentials
 
-# Run development server
-bun dev
+# Generate Prisma client
+bun db:generate
+
+# Push database schema
+bun db:push
+
+# Seed database with initial roles
+bun db:seed
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) to see the application.
+### Running the Applications
+
+This is a monorepo with two separate Next.js applications:
+
+```bash
+# Run user-facing app (port 3000)
+bun dev:user
+
+# Run admin app for creators (port 3001)
+bun dev:admin
+```
+
+- **User App**: [http://localhost:3000](http://localhost:3000) - For church members
+- **Admin App**: [http://localhost:3001](http://localhost:3001) - For creators and church admins
 
 ### Environment Variables
 
@@ -192,43 +211,53 @@ EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
 ```
 /bte-devotions-platform
 ├── /apps
-│   ├── /user-app          # User-facing app for members
+│   ├── /user-app          # User-facing app for members (port 3000)
 │   │   ├── app/           # Next.js App Router
+│   │   │   ├── api/       # API routes (auth, churches, users, ghost)
 │   │   │   ├── feed/      # Devotion feed
 │   │   │   ├── subscribe/ # Subscription pages
 │   │   │   └── dashboard/ # Member dashboard
-│   │   └── package.json
-│   └── /admin-app         # Mini frontend for creators & church admins
+│   │   ├── package.json
+│   │   ├── next.config.ts
+│   │   └── tsconfig.json
+│   └── /admin-app         # Mini frontend for creators & church admins (port 3001)
 │       ├── app/           # Next.js App Router
+│       │   ├── api/       # API routes (auth, churches, users, ghost)
 │       │   ├── create/    # Content creation UI
 │       │   ├── dashboard/ # Creator dashboard
 │       │   └── manage/     # Church management
-│       └── package.json
+│       ├── package.json
+│       ├── next.config.ts
+│       └── tsconfig.json
 ├── /packages
 │   ├── /components        # Shared UI components
 │   │   └── editor/        # Rich text editor (TipTap/Quill/Slate)
 │   ├── /lib               # Shared utilities
-│   │   ├── ghost/         # Ghost API helpers (Admin & Content API)
-│   │   ├── auth/          # Authentication helpers
-│   │   └── multi-tenant/  # Multi-tenant logic
+│   │   ├── auth/          # Authentication (Ghost integration, sessions, middleware)
+│   │   ├── multi-tenant/  # Multi-tenant context and middleware
+│   │   ├── types/         # TypeScript types (auth, tenant)
+│   │   └── utils.ts       # Shared utilities
 │   └── /database          # Database models & schema
 │       ├── prisma/
-│       │   └── schema.prisma  # Multi-tenant schema
-│       └── models/        # Database models
+│       │   ├── schema.prisma  # Multi-tenant schema
+│       │   └── seed.ts        # Database seeding
+│       ├── db/            # Prisma client
+│       └── package.json
 ├── /scripts               # Utility scripts
-│   ├── db-seed.ts         # Database seeding
-│   └── enforce-bun.js      # Bun version enforcement
+│   └── enforce-bun.js     # Bun version enforcement
 ├── /styles                # Shared Tailwind / global styles
-├── package.json           # Root package.json
-├── turbo.json             # Turborepo config (if using)
-└── tsconfig.json          # Shared TypeScript config
+├── package.json           # Root workspace package.json
+├── turbo.json             # Turborepo config
+└── tsconfig.json          # Base TypeScript config
 ```
 
 **Key Points:**
-- Both apps share components, utils, and database models
+- Both apps share components, utils, and database models via workspace packages
 - Multi-tenant enforcement is in shared `packages/lib/multi-tenant`
-- Ghost API helpers are in `packages/lib/ghost`
-- Database schema and models are in `packages/database`
+- Authentication and Ghost integration are in `packages/lib/auth`
+- Database schema and Prisma client are in `packages/database`
+- Each app runs independently on different ports
+- Workspace dependencies are managed via Bun workspaces
 
 ## Features
 
@@ -261,22 +290,22 @@ EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
 
 ## Development Order
 
-1. **Set up database & multi-tenant layer**
+1. **Set up database & multi-tenant layer** ✅
    - Auth, roles, church-user mappings
    - Multi-tenant API routes
    - Database schema with Prisma
 
-2. **Ghost API integration**
+2. **Ghost API integration** ✅
    - Admin API for creating posts
    - Content API for fetching devotions
    - Members API for authentication
 
-3. **Build Mini Frontend** (`/apps/admin-app`)
+3. **Build Mini Frontend** (`/apps/admin-app`) - In Progress
    - Create devotions, schedule, invite creators
    - Custom rich text editor integration
    - Church-scoped content management
 
-4. **Build User-Facing App** (`/apps/user-app`)
+4. **Build User-Facing App** (`/apps/user-app`) - In Progress
    - Fetch devotions from Ghost
    - Display feed filtered by `church_id`
    - Subscription forms and member dashboard
@@ -295,15 +324,23 @@ EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
 
 ```bash
 # Development
-bun dev              # Start Next.js development server
+bun dev:user         # Start user-facing app (port 3000)
+bun dev:admin        # Start admin app (port 3001)
 
 # Production
-bun build            # Build for production
-bun start            # Start production server
+bun build            # Build all apps and packages
+bun start            # Start production servers
 
 # Code Quality
-bun lint             # Run ESLint
-bun type-check       # TypeScript type checking
+bun lint             # Run ESLint on all workspaces
+bun type-check       # TypeScript type checking for all workspaces
+
+# Database
+bun db:generate      # Generate Prisma client
+bun db:push          # Push database schema (dev)
+bun db:migrate       # Run database migrations
+bun db:studio        # Open Prisma Studio
+bun db:seed          # Seed database with initial data
 
 # Utilities
 bun clean            # Clean build artifacts and node_modules
@@ -350,11 +387,21 @@ Configuration is done through Ghost's admin panel. Ghost handles all email sched
 
 ## Deployment
 
-### Web App (Vercel)
+### Web Apps (Vercel)
 
-1. Connect your GitHub repository to Vercel
-2. Set environment variables in Vercel dashboard
-3. Deploy automatically on push to main branch
+Each app can be deployed independently:
+
+1. **User App** (`apps/user-app`):
+   - Connect to Vercel
+   - Set root directory to `apps/user-app`
+   - Configure environment variables
+   - Deploy on port 3000
+
+2. **Admin App** (`apps/admin-app`):
+   - Connect to Vercel (separate project or same)
+   - Set root directory to `apps/admin-app`
+   - Configure environment variables
+   - Deploy on port 3001
 
 ### Ghost CMS
 
