@@ -7,13 +7,6 @@ This application serves as:
 -  **Multi-tenant SaaS layer** - Manages church spaces, roles, and data isolation
 -  **Mini frontend for creators** - Custom content creation UI (creators never see Ghost Admin)
 -  **User-facing app** - Public devotion feeds and member dashboards
-   A production-ready, multi-tenant SaaS platform that enables creators to publish daily devotions, users to subscribe and receive them, and churches to onboard members and run devotion plans.
-
-This application serves as:
-
--  **Multi-tenant SaaS layer** - Manages church spaces, roles, and data isolation
--  **Mini frontend for creators** - Custom content creation UI (creators never see Ghost Admin)
--  **User-facing app** - Public devotion feeds and member dashboards
 
 Built with Next.js, Ghost CMS (backend engine), Tailwind CSS, and modern email delivery services.
 
@@ -167,55 +160,78 @@ That's it! The setup script handles everything else.
 
 #### Quick Setup (Recommended)
 
-Ghost runs separately from the monorepo. Each developer runs their own local Ghost instance.
-
-**📖 See the [Ghost Setup Guide](./docs/GHOST_SETUP.md) for complete setup instructions.**
-
-Quick steps:
-
-1. Navigate to `../ghost` directory (sibling to monorepo)
-2. Start Ghost: `docker compose up -d`
-3. Access Ghost Admin: http://localhost:2368/ghost
-4. Create admin account and get API keys
-5. Configure API keys in monorepo `.env.local`
-
-#### 2. Set Up Monorepo
+**1. Set Up Monorepo**
 
 ```bash
 # Install dependencies
 bun install
 
-# Run setup script (creates .env.local, sets up database, seeds data)
+# Run setup script (creates .env.local, sets up database, seeds data, copies Ghost files)
 bun setup
 ```
 
 The setup script will:
 - ✅ Create `.env.local` from `.env.example`
 - ✅ Generate Prisma client
-- ✅ Create and seed the database
+- ✅ Create and seed the database at `packages/database/prisma/dev.db`
 - ✅ Copy Ghost template files to `../ghost` directory
 - ✅ Check Ghost setup status
+
+**2. Set Up Ghost**
+
+After running `bun setup`, start Ghost:
+
+```bash
+# Navigate to ghost directory (created by bun setup)
+cd ../ghost
+
+# Run Ghost setup script
+./setup.sh
+```
+
+Or manually:
+```bash
+cd ../ghost
+docker compose up -d
+```
+
+Then:
+- Open http://localhost:2368/ghost
+- Create admin account (first-time setup)
+- Get API keys from Settings → Integrations
+- Add keys to `bte-devotions-platform/.env.local`
+
+**📖 For detailed Ghost setup, see [Ghost Setup Guide](./docs/GHOST_SETUP.md)**
+
+**Important:** Each developer runs their own local Ghost instance. Never share Ghost databases or commit Ghost content to Git.
 
 #### Manual Setup
 
 If you prefer to set up manually:
 
-**1. Set Up Ghost (Required)**
-
-The setup script automatically copies Ghost template files to `../ghost`:
+**1. Set Up Monorepo**
 
 ```bash
-# Run setup (copies Ghost files automatically)
-bun setup
+# Install dependencies
+bun install
 
-# Then start Ghost
-cd ../ghost
-./setup.sh
+# Create environment file
+cp .env.example .env.local
+
+# Generate Prisma client
+bun db:generate
+
+# Push database schema (creates packages/database/prisma/dev.db)
+bun db:push
+
+# Seed database
+bun db:seed
 ```
 
-Or manually copy template files:
+**2. Set Up Ghost**
+
 ```bash
-# Copy template files (if not done by bun setup)
+# Copy Ghost template files
 cp -r templates/ghost ../ghost
 
 # Start Ghost
@@ -227,32 +243,7 @@ Then:
 - Open http://localhost:2368/ghost
 - Create admin account
 - Get API keys from Settings → Integrations
-- Add keys to `bte-devotions-platform/.env.local`
-
-**2. Set Up Monorepo**
-
-```bash
-# Install dependencies
-bun install
-
-# Create environment file
-cp .env.example .env.local
-
-# Update .env.local with Ghost API keys
-
-# Generate Prisma client
-bun db:generate
-
-# Push database schema
-bun db:push
-
-# Seed database
-bun db:seed
-```
-
-**📖 For detailed Ghost setup, see [Ghost Setup Guide](./docs/GHOST_SETUP.md)**
-
-**Important:** Each developer runs their own local Ghost instance. Never share Ghost databases or commit Ghost content to Git.
+- Update `bte-devotions-platform/.env.local` with your Ghost API keys
 
 ### Running the Applications
 
@@ -283,6 +274,8 @@ GHOST_ADMIN_API_KEY=your-admin-api-key-from-ghost-admin
 GHOST_MEMBERS_API_URL=http://localhost:2368
 
 # Database (Multi-Tenant SaaS Layer)
+# Path is relative to packages/database/prisma/
+# Database file will be created at: packages/database/prisma/dev.db
 DATABASE_URL=file:./dev.db  # SQLite for MVP
 # DATABASE_URL=postgresql://...  # PostgreSQL for production
 
@@ -325,6 +318,7 @@ EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
 │   └── /database          # Database models & schema
 │       ├── prisma/
 │       │   ├── schema.prisma  # Multi-tenant schema
+│       │   ├── dev.db         # SQLite database file (gitignored, created on setup)
 │       │   └── seed.ts        # Database seeding
 │       ├── db/            # Prisma client
 │       └── package.json
@@ -463,6 +457,8 @@ bun clean            # Clean build artifacts and node_modules
 The multi-tenant backend is built inside the Next.js app (API routes + database), not a separate service.
 
 ### Database Schema (Prisma)
+
+**Database Location:** The SQLite database file is located at `packages/database/prisma/dev.db` (relative to the monorepo root). This file is gitignored and each developer has their own local copy.
 
 Stores:
 
