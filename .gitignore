@@ -14,8 +14,9 @@
 /coverage
 
 # next.js
-/.next/
-/out/
+.next/
+out/
+*.next
 
 # production
 /build
@@ -47,3 +48,7 @@ prisma/dev.db-journal
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# turbo
+.turbo/
+*.turbo
