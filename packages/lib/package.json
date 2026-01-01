@@ -1,0 +1,19 @@
+{
+  "name": "@bte-devotions/lib",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "dependencies": {
+    "@bte-devotions/database": "workspace:*",
+    "cookie": "^0.7.2",
+    "jose": "^5.9.6"
+  },
+  "devDependencies": {
+    "@types/cookie": "^0.6.0"
+  }
+}
+
+
+
+

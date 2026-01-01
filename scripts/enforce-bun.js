@@ -27,11 +27,14 @@ if (!match) {
 const current = match[1];
 const required = "1.1.0";
 
-const isValid = (a: string, b: string) =>
-  a.split(".").map(Number).reduce((r, v, i) => {
-    if (r !== 0) return r;
-    return v - b.split(".").map(Number)[i];
-  }, 0) >= 0;
+const isValid = (a, b) =>
+  a
+    .split(".")
+    .map(Number)
+    .reduce((r, v, i) => {
+      if (r !== 0) return r;
+      return v - b.split(".").map(Number)[i];
+    }, 0) >= 0;
 
 if (!isValid(current, required)) {
   console.error(`
@@ -45,4 +48,6 @@ Please upgrade Bun:
 `);
   process.exit(1);
 }
+
+
 
