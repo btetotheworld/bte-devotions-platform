@@ -2,6 +2,8 @@
 
 Thank you for your interest in contributing to the BTE Devotions Platform! This document provides guidelines and instructions for contributing.
 
+**Important**: Contributors should join our dedicated WhatsApp group for discussions, questions, and collaboration: [Join the BTE Devotions Platform WhatsApp Group](https://chat.whatsapp.com/GOfWeuAKerICPOqFbLdH4x)
+
 ## Project Goals
 
 Before contributing, please understand our project goals:

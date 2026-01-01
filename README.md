@@ -227,6 +227,8 @@ Configuration is done through Ghost's admin panel.
 
 We welcome contributions! Please see [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines.
 
+**Contributors should join our dedicated WhatsApp group**: [Join the BTE Devotions Platform WhatsApp Group](https://chat.whatsapp.com/GOfWeuAKerICPOqFbLdH4x)
+
 ## License
 
 MIT
