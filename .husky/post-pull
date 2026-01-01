@@ -1,1 +1,28 @@
-bun install && bun build
+#!/bin/sh
+
+echo "🔍 Running post-pull hook..."
+
+# Enforce strict lockfile sync
+echo "📦 Installing dependencies with strict lockfile sync..."
+if ! bun install --frozen-lockfile; then
+  echo "❌ bun install failed at $(date -u '+%Y-%m-%d %H:%M:%S GMT')."
+  echo "   Please resolve lockfile or dependency issues before continuing."
+  exit 1
+fi
+
+echo "✅ Dependencies are up to date."
+
+# Detect if database package was touched in the pull
+files_branch=$(git diff --name-only origin/main...HEAD)
+database_changed=$(echo "$files_branch" | grep -E '^packages/database/' | sort -u)
+
+if [ -n "$database_changed" ]; then
+  echo "💡 Reminder: Since packages/database changed, you may need to run:"
+  echo "   bun run db:generate"
+  echo "   bun run db:push"
+fi
+
+echo "💡 For all projects, ensure database connection strings are configured correctly."
+
+# Success summary with timestamp
+echo "🎉 Post-pull checks completed successfully at $(date -u '+%Y-%m-%d %H:%M:%S GMT')."

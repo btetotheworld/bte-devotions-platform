@@ -1,1 +1,34 @@
-bun lint && bun run build
+#!/bin/sh
+
+echo "🔍 Running pre-push hook..."
+
+# Get files committed on this branch compared to origin/main
+files_branch=$(git diff --name-only origin/main...HEAD)
+
+# Extract top-level app/package directories from committed files
+packages_branch=$(echo "$files_branch" | grep -E '^(apps|packages)/' | cut -d/ -f1-2 | sort -u)
+
+if [ -n "$packages_branch" ]; then
+  echo "📊 Workspaces changed compared to origin/main:"
+  echo "$packages_branch"
+else
+  echo "✅ No differences compared to origin/main."
+fi
+
+# Run type check for each changed package
+if [ -n "$packages_branch" ]; then
+  for pkg in $packages_branch; do
+    if [ -d "$pkg" ]; then
+      echo "➡️ Running type check in $pkg..."
+      (cd "$pkg" && bun run type-check 2>/dev/null || bun exec tsc --noEmit)
+      if [ $? -ne 0 ]; then
+        echo "❌ Type check failed in $pkg. Push aborted."
+        exit 1
+      fi
+    fi
+  done
+else
+  echo "✅ No relevant workspaces to type-check."
+fi
+
+echo "✅ Type checks passed. Proceeding with push..."

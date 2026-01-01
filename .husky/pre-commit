@@ -1,1 +1,39 @@
-bun lint
+#!/bin/sh
+
+echo "🔍 Running pre-commit hook..."
+
+# Get staged files
+files=$(git diff --cached --name-only)
+
+# Extract top-level app/package directories from staged files
+packages_staged=$(echo "$files" | grep -E '^(apps|packages)/' | cut -d/ -f1-2 | sort -u)
+
+# Compare current branch against origin/main to detect all changed workspaces
+files_branch=$(git diff --name-only origin/main...HEAD)
+packages_branch=$(echo "$files_branch" | grep -E '^(apps|packages)/' | cut -d/ -f1-2 | sort -u)
+
+# Merge staged + branch-changed packages, deduplicate
+packages=$(printf "%s\n%s\n" "$packages_staged" "$packages_branch" | sort -u)
+
+if [ -n "$packages_staged" ]; then
+  echo "📦 Changed workspaces (staged for commit):"
+  echo "$packages_staged"
+else
+  echo "✅ No apps or packages staged for commit."
+fi
+
+if [ -n "$packages_branch" ]; then
+  echo "📊 Workspaces changed compared to origin/main:"
+  echo "$packages_branch"
+else
+  echo "✅ No differences compared to origin/main."
+fi
+
+# Run lint for changed workspaces
+if [ -n "$packages" ]; then
+  echo "🚀 Running lint for staged files in these workspaces:"
+  echo "$packages"
+  bun run lint
+else
+  echo "✅ No relevant workspaces to lint."
+fi
