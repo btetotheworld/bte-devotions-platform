@@ -44,6 +44,10 @@ export const GET = withAuth(async (req, auth) => {
   }
 
   // If no creatorId, return current user's info
+  if (!auth.user) {
+    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  }
+
   return NextResponse.json({
     user: {
       id: auth.user.id,

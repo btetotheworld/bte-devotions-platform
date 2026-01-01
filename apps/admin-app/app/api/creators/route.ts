@@ -67,6 +67,10 @@ export const POST = withAuth(async (req, auth) => {
       return NextResponse.json({ error: "Name and slug are required" }, { status: 400 });
     }
 
+    if (!auth.user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
     // Check if user is already a creator
     if (auth.user.creator) {
       return NextResponse.json({ error: "User is already a creator" }, { status: 400 });

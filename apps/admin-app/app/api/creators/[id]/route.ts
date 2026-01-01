@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { withCreatorAccess } from "@bte-devotions/lib";
 import { prisma } from "@bte-devotions/database";
 

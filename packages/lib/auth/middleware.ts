@@ -32,6 +32,10 @@ export async function requireAuth(): Promise<AuthContext> {
 export async function requireRole(roleName: string): Promise<AuthContext> {
   const auth = await requireAuth();
 
+  if (!auth.user) {
+    throw new Error("User not found");
+  }
+
   const hasRole = auth.user.roleNames?.includes(roleName);
 
   if (!hasRole) {
