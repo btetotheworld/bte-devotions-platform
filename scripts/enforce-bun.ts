@@ -27,7 +27,7 @@ if (!match) {
 const current = match[1];
 const required = "1.1.0";
 
-const isValid = (a, b) =>
+const isValid = (a: string, b: string) =>
   a.split(".").map(Number).reduce((r, v, i) => {
     if (r !== 0) return r;
     return v - b.split(".").map(Number)[i];
