@@ -155,21 +155,14 @@ Ship a web-first, free SaaS that enables:
 
 Ghost runs separately from the monorepo. Each developer runs their own local Ghost instance.
 
-```bash
-# Navigate to the ghost directory (sibling to monorepo)
-cd ../ghost
+**📖 See the [Ghost Setup Guide](./docs/GHOST_SETUP.md) for complete setup instructions.**
 
-# Start Ghost with Docker
-docker compose up -d
-
-# Access Ghost Admin: http://localhost:2368/ghost
-# Create your admin account (first-time setup)
-```
-
-**Get API Keys:**
-1. Go to Ghost Admin: http://localhost:2368/ghost
-2. Navigate to: Settings → Integrations → Add custom integration
-3. Copy the **Content API Key** and **Admin API Key**
+Quick steps:
+1. Navigate to `../ghost` directory (sibling to monorepo)
+2. Start Ghost: `docker compose up -d`
+3. Access Ghost Admin: http://localhost:2368/ghost
+4. Create admin account and get API keys
+5. Configure API keys in monorepo `.env.local`
 
 #### 2. Set Up Monorepo
 
@@ -179,7 +172,7 @@ bun install
 
 # Set up environment variables
 cp .env.example .env.local
-# Edit .env.local with your Ghost API credentials from step 1
+# Edit .env.local with your Ghost API credentials (get from Ghost Admin)
 
 # Generate Prisma client
 bun db:generate
@@ -191,7 +184,7 @@ bun db:push
 bun db:seed
 ```
 
-**Important:** Each developer runs their own local Ghost instance. Never share Ghost databases or commit Ghost content to Git.
+**Important:** Each developer runs their own local Ghost instance. Never share Ghost databases or commit Ghost content to Git. See [Ghost Setup Guide](./docs/GHOST_SETUP.md) for details.
 
 ### Running the Applications
 
