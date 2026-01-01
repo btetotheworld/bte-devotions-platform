@@ -1,8 +1,13 @@
 # BTE Devotions Platform
 
-A production-ready, web-first SaaS platform that enables creators to publish daily devotions, users to subscribe and receive them, and churches to onboard members and run devotion plans.
+A production-ready, multi-tenant SaaS platform that enables creators to publish daily devotions, users to subscribe and receive them, and churches to onboard members and run devotion plans.
 
-Built with Next.js, Ghost CMS, Tailwind CSS, and modern email delivery services.
+This application serves as:
+- **Multi-tenant SaaS layer** - Manages church spaces, roles, and data isolation
+- **Mini frontend for creators** - Custom content creation UI (creators never see Ghost Admin)
+- **User-facing app** - Public devotion feeds and member dashboards
+
+Built with Next.js, Ghost CMS (backend engine), Tailwind CSS, and modern email delivery services.
 
 ## Goal (MVP)
 
@@ -21,26 +26,51 @@ Ship a web-first, free SaaS that enables:
 - Not building a custom editor from scratch
 - Not rebuilding email infrastructure
 
-## Architecture
+## Architecture Overview
+
+```
+[Church Admin / Creator] -> Mini Frontend (Next.js) -> Ghost Admin API -> Ghost Backend
+                                      |
+                                      v
+                      Next.js User-Facing App (Members)
+                                      |
+                                      v
+                               Email Delivery (Ghost)
+```
+
+### Detailed Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│              Web App (Next.js)                          │
+│         Multi-Tenant SaaS Layer (Next.js)                │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Auth &       │  │ Devotion     │  │ Church       │  │
-│  │ Profiles     │  │ Feed         │  │ Spaces       │  │
-│  └──────────────┘  └──────────────┘  └──────────────┘  │
-└───────────────────────┬─────────────────────────────────┘
-                        │
-                        ↓
+│  │ Mini         │  │ User-Facing   │  │ Multi-Tenant │  │
+│  │ Frontend     │  │ App           │  │ Backend      │  │
+│  │ (Creators)   │  │ (Members)     │  │              │  │
+│  │              │  │              │  │ - API Routes │  │
+│  │ - Custom     │  │ - Devotion   │  │ - Database   │  │
+│  │   Editor     │  │   Feed       │  │ - Multi-     │  │
+│  │ - Scheduling │  │ - Subscribe  │  │   tenant     │  │
+│  │ - Dashboard  │  │ - Dashboard   │  │   Logic      │  │
+│  └──────┬───────┘  └──────┬───────┘  └──────────────┘  │
+└─────────┼──────────────────┼────────────────────────────┘
+          │                  │
+          │ Ghost Admin API  │ Ghost Content API
+          │                  │ Ghost Members API
+          ↓                  ↓
 ┌─────────────────────────────────────────────────────────┐
-│         Ghost CMS (Self-hosted, Open Source)            │
+│         Ghost CMS (Backend Engine)                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Editor       │  │ Email Engine │  │ Subscriptions│  │
-│  │ (Built-in)   │  │ (Built-in)   │  │ (Members API)│  │
+│  │ Content      │  │ Email Engine │  │ Subscriptions│  │
+│  │ Storage      │  │ (Scheduling)  │  │ (Members API)│  │
+│  │              │  │              │  │              │  │
+│  │ - Posts      │  │ - Delivery   │  │ - Auth       │  │
+│  │ - Tags       │  │ - Templates  │  │ - Members    │  │
+│  │   (church_id)│  │ - Analytics  │  │ - Plans      │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
 └───────────────────────┬─────────────────────────────────┘
                         │
+                        │ Email API
                         ↓
 ┌─────────────────────────────────────────────────────────┐
 │         Email Service (Mailgun/Postmark/SES)            │
@@ -51,36 +81,65 @@ Ship a web-first, free SaaS that enables:
 └─────────────────────────────────────────────────────────┘
 ```
 
+### Content Flow
+
+1. **Creator logs into mini frontend** → writes devotion → sets schedule
+2. **Mini frontend calls Ghost Admin API** → stores post in Ghost → tags with `church_id`
+3. **Ghost sends email** to subscribed members automatically
+4. **User-facing app fetches devotions** via Ghost Content API → members see devotions filtered by `church_id`
+
+**Key Point**: The multi-tenant backend layer is built inside the Next.js app (API routes + database). Ghost is backend for content & delivery only. Everything runs inside one monorepo.
+
+## What Ghost Provides vs What We Build
+
+### What Ghost Provides (Backend Engine)
+- Content storage & publishing
+- Scheduling posts & email delivery
+- Members API (for auth + subscriptions)
+- Post storage & metadata
+- Email engine with SMTP integration
+
+### What We Build Ourselves
+
+#### A. Multi-Tenant SaaS Layer
+- Church spaces → isolated dashboards per church
+- Role-based routing: Church Admins, Creators, Members
+- Database stores: `churches | users | roles | ghost_author_ids | subscriptions`
+- Multi-tenant enforcement → no church sees other church data
+
+#### B. Mini Frontend for Creators
+- Custom rich text/markdown editor (TipTap/Quill/Slate)
+- Create and schedule devotions → call Ghost Admin API
+- Auto-tag devotion with `church_id`
+- Invite creators, manage church-level content
+- Optional: analytics via Ghost API
+- **Creators never see Ghost Admin interface**
+
+#### C. User-Facing App
+- Landing page / church discovery
+- Devotion feed filtered by `church_id`
+- Subscription forms (via Ghost Members API)
+- Church member dashboard
+
 ## Tech Stack
 
-### Frontend
-- **Next.js 16** - React framework with App Router
-- **Tailwind CSS v4** - Utility-first CSS framework
-- **shadcn/ui** - Component library
-- **TypeScript** - Type safety
+| Layer            | Technology                                  |
+| ---------------- | ------------------------------------------- |
+| Frontend         | Next.js + Tailwind CSS                      |
+| Database         | SQLite (dev), PostgreSQL/MySQL (prod) using Prisma |
+| Backend          | Next.js API routes                          |
+| Content Engine   | Ghost (Self-hosted, Open Source)            |
+| Rich Text Editor | TipTap / Quill / Slate                      |
+| Email Delivery   | Ghost SMTP (Mailgun/Postmark/SES)           |
+| Hosting          | Next.js: Vercel, Ghost: DigitalOcean/Fly.io |
 
-### Content & Email Core
-- **Ghost CMS** - Self-hosted, open-source publishing platform
-  - Built-in rich text editor
-  - Email engine for newsletters
-  - Members API for authentication and subscriptions
-  - SQLite (MVP) → MySQL (production)
+### Key Notes
 
-### Authentication
-- **Ghost Members API** - Native authentication and member management
-- Integration with Next.js for seamless user experience
-
-### Email Delivery
-- **Mailgun** / **Postmark** / **Amazon SES** - Transactional and newsletter email delivery
-- Connected directly to Ghost's email engine
-
-### Hosting
-- **Ghost**: DigitalOcean / Fly.io
-- **Web App**: Vercel
-
-### Database
-- **Ghost's built-in DB** - SQLite for MVP, MySQL for production
-- No separate database required in MVP
+- **Ghost Admin is never shown to creators** - they use our custom mini frontend
+- **Mini frontend handles church-scoped content creation and multi-tenancy**
+- **Database stores church info, users, and mappings** - separate from Ghost's database
+- **Ghost remains the backend engine** for content, scheduling, and email
+- **Multi-tenant backend is part of Next.js** - no separate backend service needed for MVP
 
 ## Quick Start
 
@@ -119,38 +178,67 @@ GHOST_CONTENT_API_KEY=your-content-api-key
 # Ghost Members API (for authentication)
 GHOST_MEMBERS_API_URL=https://your-ghost-instance.com/members/api
 
-# Email Service (optional, if custom integration needed)
+# Database (Multi-Tenant SaaS Layer)
+DATABASE_URL=file:./dev.db  # SQLite for MVP
+# DATABASE_URL=postgresql://...  # PostgreSQL for production
+
+# Email Service (configured in Ghost, optional here)
 EMAIL_SERVICE_API_KEY=your-email-service-key
 EMAIL_SERVICE_PROVIDER=mailgun|postmark|ses
 ```
 
-## Project Structure
+## Monorepo Structure
 
 ```
-bte-devotions-platform/
-├── app/                    # Next.js App Router
-│   ├── layout.tsx         # Root layout
-│   ├── page.tsx           # Home page
-│   └── globals.css        # Global styles
-├── lib/                   # Utility functions
-│   └── utils.ts           # Shared utilities
-├── components/            # React components (shadcn/ui)
-├── public/                # Static assets
-├── scripts/               # Build and utility scripts
-│   └── enforce-bun.ts    # Bun version enforcement
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-└── next.config.ts
+/bte-devotions-platform
+├── /apps
+│   ├── /user-app          # User-facing app for members
+│   │   ├── app/           # Next.js App Router
+│   │   │   ├── feed/      # Devotion feed
+│   │   │   ├── subscribe/ # Subscription pages
+│   │   │   └── dashboard/ # Member dashboard
+│   │   └── package.json
+│   └── /admin-app         # Mini frontend for creators & church admins
+│       ├── app/           # Next.js App Router
+│       │   ├── create/    # Content creation UI
+│       │   ├── dashboard/ # Creator dashboard
+│       │   └── manage/     # Church management
+│       └── package.json
+├── /packages
+│   ├── /components        # Shared UI components
+│   │   └── editor/        # Rich text editor (TipTap/Quill/Slate)
+│   ├── /lib               # Shared utilities
+│   │   ├── ghost/         # Ghost API helpers (Admin & Content API)
+│   │   ├── auth/          # Authentication helpers
+│   │   └── multi-tenant/  # Multi-tenant logic
+│   └── /database          # Database models & schema
+│       ├── prisma/
+│       │   └── schema.prisma  # Multi-tenant schema
+│       └── models/        # Database models
+├── /scripts               # Utility scripts
+│   ├── db-seed.ts         # Database seeding
+│   └── enforce-bun.js      # Bun version enforcement
+├── /styles                # Shared Tailwind / global styles
+├── package.json           # Root package.json
+├── turbo.json             # Turborepo config (if using)
+└── tsconfig.json          # Shared TypeScript config
 ```
+
+**Key Points:**
+- Both apps share components, utils, and database models
+- Multi-tenant enforcement is in shared `packages/lib/multi-tenant`
+- Ghost API helpers are in `packages/lib/ghost`
+- Database schema and models are in `packages/database`
 
 ## Features
 
 ### For Creators
-- Publish daily devotions using Ghost's built-in editor
+- Publish daily devotions using custom mini frontend (TipTap/Quill/Slate editor)
 - Schedule content for automatic delivery
+- Church-scoped content creation (multi-tenant isolation)
 - Track engagement metrics (open rates, clicks)
 - Manage subscriber lists
+- **Note**: Creators use our custom UI, never see Ghost Admin interface
 
 ### For Users
 - Subscribe to devotion plans
@@ -171,6 +259,38 @@ bte-devotions-platform/
 - Daily email open rate
 - Consistency of devotion delivery
 
+## Development Order
+
+1. **Set up database & multi-tenant layer**
+   - Auth, roles, church-user mappings
+   - Multi-tenant API routes
+   - Database schema with Prisma
+
+2. **Ghost API integration**
+   - Admin API for creating posts
+   - Content API for fetching devotions
+   - Members API for authentication
+
+3. **Build Mini Frontend** (`/apps/admin-app`)
+   - Create devotions, schedule, invite creators
+   - Custom rich text editor integration
+   - Church-scoped content management
+
+4. **Build User-Facing App** (`/apps/user-app`)
+   - Fetch devotions from Ghost
+   - Display feed filtered by `church_id`
+   - Subscription forms and member dashboard
+
+5. **Landing page / public pages**
+   - Church discovery
+   - Public devotion previews
+
+6. **Test multi-tenant isolation & end-to-end flow**
+   - Verify church data isolation
+   - Test content creation → delivery flow
+
+7. **Polish UI, styling, responsive design**
+
 ## Available Scripts
 
 ```bash
@@ -189,14 +309,34 @@ bun type-check       # TypeScript type checking
 bun clean            # Clean build artifacts and node_modules
 ```
 
-## Authentication Flow
+## Multi-Tenant Backend Layer
 
-The platform uses Ghost's Members API for authentication:
+The multi-tenant backend is built inside the Next.js app (API routes + database), not a separate service.
+
+### Database Schema (Prisma)
+
+Stores:
+- **Church info**: `church_id`, name, settings, etc.
+- **Users**: `user_id`, role, `church_id` (mapping to church)
+- **Ghost mappings**: `ghost_author_id` ↔ `church_id` (links Ghost authors to churches)
+- **Roles**: Church Admins, Creators, Members
+- **Subscriptions**: Member subscription preferences
+
+### Next.js API Routes Handle
+
+- Mapping content to church (enforcing `church_id` tags)
+- Multi-tenant authentication and authorization
+- Admin/creator logic (inviting creators, scheduling posts)
+- Church-scoped data queries (ensuring isolation)
+
+### Authentication Flow
 
 1. User signs up/logs in through Ghost Members API
 2. Ghost handles authentication and session management
-3. Next.js frontend integrates with Ghost Members API
-4. User profile and subscription data managed by Ghost
+3. Next.js multi-tenant layer maps users to churches and roles
+4. Role-based access control: Church Admins, Creators, Members
+5. User profile and subscription data managed by Ghost
+6. Church relationships and permissions stored in Next.js database
 
 ## Email Delivery
 
@@ -206,7 +346,7 @@ Email delivery is handled by Ghost's built-in email engine, connected to your ch
 2. **Postmark** - Great deliverability and analytics
 3. **Amazon SES** - Cost-effective for large scale
 
-Configuration is done through Ghost's admin panel.
+Configuration is done through Ghost's admin panel. Ghost handles all email scheduling, delivery, and tracking automatically.
 
 ## Deployment
 
