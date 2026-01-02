@@ -84,3 +84,4 @@ docker compose up -d
 
 For more detailed information, see the [Ghost Setup Guide](../../docs/GHOST_SETUP.md) in the monorepo.
 
+

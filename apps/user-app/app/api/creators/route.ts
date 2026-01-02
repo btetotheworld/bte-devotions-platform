@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { withAuth } from "@bte-devotions/lib";
+import { withAuth, setupGhostAuthorForCreator, retryGhostApiCall } from "@bte-devotions/lib";
 import { prisma } from "@bte-devotions/database";
 
 // GET /api/creators - List creators (public or filtered)
@@ -108,6 +108,23 @@ export const POST = withAuth(async (req, auth) => {
           creatorId: creator.id,
         },
       });
+    }
+
+    // Automatically create Ghost author and mapping
+    try {
+      await retryGhostApiCall(async () => {
+        await setupGhostAuthorForCreator(
+          creator.id,
+          auth.user.id,
+          creator.name,
+          auth.user.email,
+          creator.slug
+        );
+      });
+    } catch (error) {
+      console.error("Failed to create Ghost author for creator:", error);
+      // Don't fail the creator creation if Ghost author creation fails
+      // The author can be created later via the setup endpoint
     }
 
     return NextResponse.json({ creator }, { status: 201 });

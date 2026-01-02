@@ -1,0 +1,5 @@
+# Bun configuration
+# Note: `bun test` is a built-in command that cannot be disabled
+# Tests should be run using Vitest: `bunx vitest run` or `bun run test:watch`
+# Use `bun run test` to see available test commands
+

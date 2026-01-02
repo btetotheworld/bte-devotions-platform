@@ -71,11 +71,12 @@ export const POST = withAuth(async (req, auth) => {
     }
 
     // Create new subscription
+    // Note: ghostMemberId is required in schema, so we use a placeholder if not available
     const subscription = await prisma.subscription.create({
       data: {
         userId: auth.user.id,
         creatorId,
-        ghostMemberId: auth.user.ghostMemberId || "",
+        ghostMemberId: auth.user.ghostMemberId || `temp-${auth.user.id}`,
         contentType,
         isActive: true,
       },

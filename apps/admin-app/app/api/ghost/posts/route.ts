@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { withAuth } from "@bte-devotions/lib";
+import { withAuth, retryGhostApiCall } from "@bte-devotions/lib";
 import { prisma } from "@bte-devotions/database";
 
 const GHOST_URL = process.env.GHOST_URL || "";
@@ -55,7 +55,7 @@ export const POST = withAuth(async (req, auth) => {
       );
     }
 
-    // Create post in Ghost via Admin API
+    // Create post in Ghost via Admin API with retry logic
     const ghostPost = {
       posts: [
         {
@@ -69,21 +69,26 @@ export const POST = withAuth(async (req, auth) => {
       ],
     };
 
-    const response = await fetch(`${GHOST_URL}/ghost/api/admin/posts/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Ghost ${GHOST_ADMIN_API_KEY}`,
-      },
-      body: JSON.stringify(ghostPost),
+    const data = await retryGhostApiCall(async () => {
+      const response = await fetch(`${GHOST_URL}/ghost/api/admin/posts/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Ghost ${GHOST_ADMIN_API_KEY}`,
+        },
+        body: JSON.stringify(ghostPost),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ 
+          message: `Failed to create post: ${response.statusText}` 
+        }));
+        throw new Error(error.message || `Failed to create post in Ghost: ${response.statusText}`);
+      }
+
+      return await response.json();
     });
 
-    if (!response.ok) {
-      const error = await response.json().catch(() => ({ message: "Failed to create post" }));
-      throw new Error(error.message || "Failed to create post in Ghost");
-    }
-
-    const data = await response.json();
     return NextResponse.json({ post: data.posts[0] }, { status: 201 });
   } catch (error) {
     console.error("Error creating Ghost post:", error);
@@ -117,21 +122,23 @@ export const GET = withAuth(async (req, auth) => {
       ? `tag:${creatorTag}+tag:content_type:${contentType}`
       : `tag:${creatorTag}`;
 
-    const response = await fetch(
-      `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_CONTENT_API_KEY}&filter=${encodeURIComponent(filter)}&limit=${limit}&page=${page}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
+    const data = await retryGhostApiCall(async () => {
+      const response = await fetch(
+        `${GHOST_URL}/ghost/api/content/posts/?key=${GHOST_CONTENT_API_KEY}&filter=${encodeURIComponent(filter)}&limit=${limit}&page=${page}`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch posts from Ghost: ${response.statusText}`);
       }
-    );
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch posts from Ghost");
-    }
-
-    const data = await response.json();
+      return await response.json();
+    });
     return NextResponse.json({
       posts: data.posts || [],
       meta: data.meta || {},

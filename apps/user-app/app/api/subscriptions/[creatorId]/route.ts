@@ -7,10 +7,10 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ creatorId: string }> }
 ) {
-  const { creatorId } = await params;
-
   return withAuth(async (req, auth) => {
     try {
+      const { creatorId } = await params;
+
       const subscription = await prisma.subscription.findUnique({
         where: {
           userId_creatorId: {

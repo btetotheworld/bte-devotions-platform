@@ -448,6 +448,13 @@ bun db:migrate       # Run database migrations
 bun db:studio        # Open Prisma Studio
 bun db:seed          # Seed database with initial data
 
+# Testing (Note: Use Vitest, not Bun test runner)
+bunx vitest run      # Run tests once
+bun test:watch       # Run tests in watch mode
+bun test:coverage    # Run tests with coverage
+# ⚠️  Do NOT use `bun test` - it will run Bun's built-in test runner
+# Use `bun run test` to see available test commands
+
 # Utilities
 bun clean            # Clean build artifacts and node_modules
 ```
