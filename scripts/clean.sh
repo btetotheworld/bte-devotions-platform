@@ -39,7 +39,7 @@ remove_dir "out"
 remove_dir "dist"
 remove_dir "coverage"
 remove_dir ".nyc_output"
-remove_file "bun.lockb"
+# remove_file "bun.lock"
 remove_file "*.tsbuildinfo"
 find . -maxdepth 1 -name "*.tsbuildinfo" -type f -delete 2>/dev/null || true
 
