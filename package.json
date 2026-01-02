@@ -7,6 +7,9 @@
     "packages/*"
   ],
   "scripts": {
+    "test": "bash scripts/test-helper.sh",
+    "test:watch": "bunx vitest",
+    "test:coverage": "bunx vitest run --coverage",
     "setup": "node scripts/setup.js",
     "dev": "echo 'Please use: bun dev:user or bun dev:admin'",
     "dev:user": "cd apps/user-app && bun dev",
@@ -15,7 +18,7 @@
     "start": "turbo run start",
     "lint": "turbo run lint",
     "prepare": "husky",
-    "clean": "turbo run clean && rm -rf node_modules",
+    "clean": "bash scripts/clean.sh",
     "preinstall": "node scripts/enforce-bun.js",
     "type-check": "turbo run type-check",
     "db:generate": "cd packages/database/prisma && bun prisma generate",
@@ -28,9 +31,12 @@
   "devDependencies": {
     "@commitlint/cli": "^20.2.0",
     "@commitlint/config-conventional": "^20.2.0",
+    "@types/node": "^25.0.3",
+    "@vitest/coverage-v8": "^4.0.16",
     "husky": "^9.1.7",
     "turbo": "^2.0.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.16"
   },
   "ignoreScripts": [
     "sharp",
